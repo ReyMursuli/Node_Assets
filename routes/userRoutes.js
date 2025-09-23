@@ -1,0 +1,1 @@
+app.post('/agregarUsuario',agregarUsuario);
