@@ -23,3 +23,8 @@ const deleteUser=async(id)=>{
     const usuario=await User.destroy({where:{id}});
     return usuario;
 }
+
+const getUser=async()=>{
+    const users=await Users.findAll();
+    return users;
+}

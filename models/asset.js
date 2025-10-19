@@ -17,16 +17,21 @@ const Asset =sequelize.define('Asset',{
         type:DataTypes.STRING,
         allownull:false,
     },
+
+    rotulo:{
+        type:DataTypes.STRING,
+        allowNull:false,
+    },
     val_inicial:{
         type:DataTypes.DECIMAL(15,2),
-        allownull:false,
+        allowNull:false,
         validate:{
             min:0,
         },
     },
     val_residual:{
         type:DataTypes.DECIMAL(15,2),
-        allownull:false,
+        allowNull:false,
         validate:{
             min:0,
         },
@@ -37,7 +42,15 @@ const Asset =sequelize.define('Asset',{
         validate:{
             min:0,
         },   
-    }
+    },
+    departamentId:{
+        type:DataTypes.INTEGER,
+        allowNull:true,
+        references:{
+            model:'departaments',
+            key:'id'
+        }
+    },
 },{
     timestamps: true,
     paranoid: true,
@@ -49,7 +62,7 @@ Departament.hasMany(Asset,{
     onUpdate:'CASCADE',
 }),
 
-Asset.belongTo(Departament,{
+Asset.belongsTo(Departament,{
     ForeignKey:"departamentId",
     onDelete:'CASCADE',
     onUpdate:'CASCADE',

@@ -16,9 +16,17 @@ const Departament=sequelize.define('Departament',{
         type:DataTypes.STRING,
         allowNull:false,
         unique:true,
+    },
+    responsableId: {  
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'users',  // nombre de la tabla users
+            key: 'id'
+        }
     }
 },{
-    tableName:'departamenets',
+    tableName:'departments',
     timestamps:true,
 }
 );
