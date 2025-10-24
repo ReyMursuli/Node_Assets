@@ -2,7 +2,7 @@
   "development": {
     "username": "postgres",
     "password": "postgres",
-    "database": "AssetsMasters",
+    "database": "AssetsMasters-development",
     "host": "localhost",
     "port": 3000,
     "dialect":"postgres"
@@ -10,7 +10,7 @@
   "test": {
     "username": "postgres",
     "password": "postgres",
-    "database": "AssetsMasters",
+    "database": "AssetsMasters-test",
     "host": "localhost",
     "port": 3000,
     "dialect":"postgres"
@@ -18,7 +18,7 @@
   "production": {
     "username": "postgres",
     "password": "postgres",
-    "database": "AssetsMasters",
+    "database": "AssetsMasters-production",
     "host": "localhost",
     "port": 3000,
     "dialect":"postgres"
