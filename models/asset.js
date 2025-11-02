@@ -11,11 +11,11 @@ const Asset =sequelize.define('Asset',{
 
     nombre:{
         type:DataTypes.STRING,
-        allownull:false,
+        allowNull:false,
     },
     codigo:{
         type:DataTypes.STRING,
-        allownull:false,
+        allowNull:false,
     },
 
     rotulo:{
@@ -43,27 +43,30 @@ const Asset =sequelize.define('Asset',{
             min:0,
         },   
     },
-    departamentId:{
+    /*departamentId:{
         type:DataTypes.INTEGER,
         allowNull:true,
         references:{
-            model:'departaments',
+            model:'departments',
             key:'id'
         }
-    },
+    },*/
 },{
+    sequelize,
+    modelName: "Asset",
+    tableName: "assets",
     timestamps: true,
     paranoid: true,
 });
 
 Departament.hasMany(Asset,{
-    ForeignKey:"departamentId",
+    foreignKey:"departamentId",
     onDelete:'CASCADE',
     onUpdate:'CASCADE',
 }),
 
 Asset.belongsTo(Departament,{
-    ForeignKey:"departamentId",
+    foreignKey:"departamentId",
     onDelete:'CASCADE',
     onUpdate:'CASCADE',
 });

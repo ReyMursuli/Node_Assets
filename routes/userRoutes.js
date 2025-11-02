@@ -48,6 +48,7 @@ router.post(
                 throw new AppError("Todos los campos son requeridos",400);
             }
             const user=await createUser(username,email,role);
+            res.status(201).json(user);
         }catch(error){
             next(error);
         }
@@ -209,3 +210,5 @@ router.get(
     }
   }
 );
+
+module.exports=router;

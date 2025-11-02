@@ -1,5 +1,6 @@
 const { where } = require('sequelize');
 const User = require('../models/user');
+const { get } = require('../routes/userRoutes');
 
 
 const createUser=async(username,email,role)=>{
@@ -25,6 +26,11 @@ const deleteUser=async(id)=>{
 }
 
 const getUser=async()=>{
-    const users=await Users.findAll();
+    const users=await User.findAll();
     return users;
 }
+
+
+module.exports={
+    createUser,updateUser,deleteUser,getUser
+};

@@ -1,5 +1,6 @@
 const Asset=require("../models/asset");
 
+
 const createAsset=async(nombre,codigo,rotulo,valInicial,valResidual,depAcomulada,idDepartament)=>{
     const asset=await Asset.create({
         nombre,

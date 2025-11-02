@@ -17,30 +17,35 @@ const Departament=sequelize.define('Departament',{
         allowNull:false,
         unique:true,
     },
-    responsableId: {  
+    
+    /*responsableId: {  
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
             model: 'users',  // nombre de la tabla users
             key: 'id'
         }
-    }
+    },*/
 },{
+    sequelize,
     tableName:'departments',
+    modelName: 'Departments',
     timestamps:true,
 }
 );
 
 
-User.hasOne(models.Departament,{
-    foreignKey:('reponsableId'),
+User.hasOne(Departament,{
+    foreignKey:"reponsableId",
     as:('departamentoResponsable'),
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
 }),
 
-Departament.belongsTo(models.User,{
-    foreignKey:'responsableId',
-    onDelete:'CASCADE',
-    onUpdate:'CASCADE',
+Departament.belongsTo(User,{
+    foreignKey:"responsableId",
+    onDelete:"CASCADE",
+    onUpdate:"CASCADE",
 });
 
 module.exports=Departament;

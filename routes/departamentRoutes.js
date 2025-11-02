@@ -1,4 +1,5 @@
-const router =require("express").Router;
+
+const router =require("express").Router();
 const AppError =require("../errors/AppError");
 
 const {createDepartment,deleteDepartment,getDepartment,updateDepartment,getDepartments}=require("../controller/departamentController");
@@ -33,7 +34,7 @@ const {createDepartment,deleteDepartment,getDepartment,updateDepartment,getDepar
  */
 
 router.post(
-    "/department/create",
+    "/departments/create",
     async(req,res,next)=>{
         try{
             const{nombre,codigo,responsableId}=req.body;
@@ -87,7 +88,7 @@ router.post(
  */
 
 router.put(
-    "/department/update/:id",
+    "/departments/update/:id",
     async(req,res,next)=>{
         try{
             const{nombre,codigo,responsableId}=req.body;
@@ -139,13 +140,13 @@ router.delete(
         try{
             const{id}=req.params;
             if(!id){
-                throw new AppError=("El id es requerido",400);
+                throw new AppError("El id es requerido",400);
             }
             const department = await deleteDepartment(id);
             if(department==0){
-                throw new AppError=("Deparamento no encontrado",404);
+                throw new AppError("Departamento no encontrado",404);
             }
-            res.status(201).jason({mensaje : "Departamento eliminado"});
+            res.status(200).json({mensaje : "Departamento eliminado"});
         }catch(error){
             next(error);
         }
@@ -211,7 +212,7 @@ router.get(
  */
 
 router.get(
-    "/departament/:id",
+    "/departments/:id",
     async(req,res,next)=>{
         try{
             const{id}=req.params;
@@ -229,4 +230,4 @@ router.get(
     }
 );
 
-module.exports(router);
+module.exports = router;

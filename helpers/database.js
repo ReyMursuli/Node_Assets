@@ -6,20 +6,21 @@ const dotenv = require("dotenv").config();
 const databaseName=process.env.DB_NAME;
 const password=process.env.DB_PASSWORD;
 const user=process.env.DB_USER;
-const dialect=process.env.BD_DIALECT;
+const dialect=process.env.DB_DIALECT;
 const host=process.env.HOST;
+//const port = Number(process.env.DB_PORT) || 5432;
 
 //conexion con la base de datos
-const sequelize=new Sequelize(databaseName,user,password,{
-    host:host,
-    dialect:dialect,
-    loggin:false,
+const sequelize= new Sequelize(databaseName,user,password,{
+    host: host,
+    dialect: dialect,
+    loggin: false,
 });
 
 sequelize.authenticate().then(()=>{
-    console.log("conexion establecida correctamente");})
+    console.log("Conexion establecida correctamente");})
 .catch((err)=>{
     console.log("Error al conectarse ala base de datos");
-})
+});
 
-module.exxports =sequelize;
+module.exports = sequelize;

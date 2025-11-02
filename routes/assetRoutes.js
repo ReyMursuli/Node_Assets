@@ -1,4 +1,4 @@
-const router=require("express").Router;
+const router=require("express").Router();
 const AppError=require("../errors/AppError");
 
 
@@ -135,7 +135,7 @@ router.post(
 
 
 router.put(
-    "assets/update/:id",
+    "/assets/update/:id",
     async(req,res,next)=>{
         try{
             const {id}=req.params;
@@ -294,7 +294,7 @@ router.get(
                 throw new AppError("Activo no encontrado", 404);
             }
 
-            res.status(200).jason(asset);
+            res.status(200).json(asset);
 
         }catch(error){
             next(error)
@@ -302,4 +302,4 @@ router.get(
     }
 );
 
-module.exports(router);
+module.exports = router;
