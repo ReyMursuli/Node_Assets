@@ -1,7 +1,7 @@
 const { where } = require('sequelize');
 const User = require('../models/user');
 const { get } = require('../routes/userRoutes');
-
+const upload=require('../middlewares/multerConfig');
 
 const createUser=async(username,email,role)=>{
     const user=await User.create({

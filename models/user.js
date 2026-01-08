@@ -26,6 +26,16 @@ const User = sequelize.define('User',{
     role:{
         type:DataTypes.ENUM('admin','responsable'),
         defaultValue:'admin',
+    },
+
+    // NUEVO CAMPO AGREGADO
+    profileImage: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null,
+        validate: {
+            isUrl: true // Opcional: si vas a guardar URLs de imágenes
+        }
     }
 },{
     sequelize,

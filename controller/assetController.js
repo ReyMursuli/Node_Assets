@@ -10,7 +10,6 @@ const createAsset=async(nombre,codigo,rotulo,valInicial,valResidual,depAcomulada
         valResidual,
         depAcomulada,
         idDepartament,
-        
     });
     return asset;
 };

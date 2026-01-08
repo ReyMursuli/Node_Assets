@@ -2,7 +2,7 @@
   "development": {
     "username": "postgres",
     "password": "postgres",
-    "database": "Assets-development",
+    "database": "Assets",
     "host": "localhost",
     "port": 5432,
     "dialect": "postgres"

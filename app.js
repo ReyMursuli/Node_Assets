@@ -3,7 +3,7 @@ const express =require('express'); //se importa express
 const sequelize=require("./helpers/database.js");
 const errorHandler=require("./middlewares/errorHandler.js")
 const cors=require('cors');
-
+const userRoutes=require('./routes/userRoutes');
 const User=require("./models/user.js");
 const Departament=require("./models/departament.js");
 const Asset=require("./models/asset.js");
@@ -12,9 +12,10 @@ const Asset=require("./models/asset.js");
 
 const app=express(); // se crea una app de expres 
 
+app.use(express.urlencoded({extended:true}));
 
 //Cors configuration
-const allowedOrigins=["http://localhost:3000"];
+const allowedOrigins=["http://localhost:3000", "http://localhost:3001"];
 app.use(
     cors({
         origin:allowedOrigins, 
@@ -25,6 +26,8 @@ app.use(
 
 // Middleware para procesar JSON
 app.use(express.json());
+app.use(express.static('public'));
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
 
