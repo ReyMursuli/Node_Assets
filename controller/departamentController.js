@@ -7,7 +7,7 @@ const createDepartment= async(nombre,codigo,responsaliId=null)=>{
 
 const updateDepartment= async(id,nombre,codigo,responsaliId=null)=>{
     const updateData={nombre,codigo,responsaliId};
-    const department = await Department.update(updateData, { where: { id } });
+    const department = await Departament.update(updateData, { where: { id } });
     return department;
 };
 
@@ -17,7 +17,7 @@ const deleteDepartment=async(id)=>{
 };
 
 const getDepartment=async(id)=>{
-    const department = await Department.findByPk(id, {
+    const department = await Departament.findByPk(id, {
         include: [{
             association: 'User',  // Según la relación que definas
             attributes: ['id', 'username', 'email']
@@ -28,7 +28,7 @@ const getDepartment=async(id)=>{
 
 
 const getDepartments=async()=>{
-    const departments = await Department.findAll({
+    const departments = await Departament.findAll({
         include: [{
             association: 'User',
             attributes: ['id', 'username', 'email']

@@ -25,6 +25,7 @@ const Asset =sequelize.define('Asset',{
     val_inicial:{
         type:DataTypes.DECIMAL(15,2),
         allowNull:false,
+        defaultValue:0.00,
         validate:{
             min:0,
         },
@@ -32,6 +33,7 @@ const Asset =sequelize.define('Asset',{
     val_residual:{
         type:DataTypes.DECIMAL(15,2),
         allowNull:false,
+        defaultValue:0.00,
         validate:{
             min:0,
         },
