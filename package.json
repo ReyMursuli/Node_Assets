@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "start": "node ./app.js",
+    "dev":"node --watch ./app.js"
+  },
   "dependencies": {
     "cli": "^1.0.1",
     "cors": "^2.8.5",

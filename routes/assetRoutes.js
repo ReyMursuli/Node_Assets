@@ -178,7 +178,7 @@ router.put(
  * @swagger
  * /assets/delete/{id}:
  *   delete:
- *     summary: Elimina un activo (soft delete)
+ *     summary: Elimina un activo 
  *     tags:
  *       - Activo
  *     parameters:
@@ -209,7 +209,7 @@ router.delete(
                 throw new AppError("El id es requerido", 400);
             }
             const asset = await deleteAsset(id);
-            if (asset == 0) {
+            if (asset === 0) {
                 throw new AppError("Activo no encontrado", 404);
             }
 

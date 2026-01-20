@@ -36,7 +36,7 @@ const Departament=sequelize.define('Departament',{
 
 
 User.hasOne(Departament,{
-    foreignKey:"reponsableId",
+    foreignKey:"responsableId",
     as:('departamentoResponsable'),
     onDelete: "CASCADE",
     onUpdate: "CASCADE",

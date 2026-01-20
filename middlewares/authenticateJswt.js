@@ -1,4 +1,4 @@
-const jwt = require('jasonwebtoken');
+const jwt = require('jsonwebtoken');
 const AppError=require("../errors/AppError");
 
 const authenticate =(roles)=>{

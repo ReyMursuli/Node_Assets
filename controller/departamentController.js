@@ -1,7 +1,7 @@
 const Departament=require("../models/departament");
 
-const createDepartment= async(nombre,codigo,responsaliId=null)=>{
-    const departament=await Departament.create({nombre,codigo,responsaliId});
+const createDepartment= async(nombre,codigo,responsableId=null)=>{
+    const departament=await Departament.create({nombre,codigo,responsableId});
     return departament;
 };
 

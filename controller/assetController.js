@@ -1,15 +1,15 @@
 const Asset=require("../models/asset");
 
 
-const createAsset=async(nombre,codigo,rotulo,valInicial,valResidual,depAcomulada,idDepartament)=>{
-    const asset=await Asset.create({
+const createAsset = async (nombre, codigo, rotulo, val_inicial, val_residual, dep_acomulada, departamentId) => {
+    const asset = await Asset.create({
         nombre,
         codigo,
         rotulo,
-        valInicial,
-        valResidual,
-        depAcomulada,
-        idDepartament,
+        val_inicial,      
+        val_residual,     
+        dep_acomulada,     
+        departamentId,    
     });
     return asset;
 };
@@ -26,12 +26,14 @@ const getAssets=async()=>{
 }
 
 const deleteAsset=async(id)=>{
-    const asset=await Asset.destroy({where:{id}});
+    const asset=await Asset.destroy(
+        {where:{id},
+        force: true });
     return asset;
 };
 
-const updateAsset=async(id,nombre,codigo,rotulo,valInicial,valResidual,depAcomulada,idDepartament)=>{
-    let updateData={nombre,codigo,rotulo,valInicial,valResidual,depAcomulada,idDepartament};
+const updateAsset=async(id,nombre,codigo,rotulo,val_inicial,val_residual,dep_acomulada,departamentId)=>{
+    let updateData={nombre,codigo,rotulo,val_inicial,val_residual,dep_acomulada,departamentId};
     const asset=await Asset.update(updateData,{where:{id}});
     return asset;
 };
