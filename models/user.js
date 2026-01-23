@@ -32,10 +32,7 @@ const User = sequelize.define('User',{
     profileImage: {
         type: DataTypes.STRING,
         allowNull: true,
-        defaultValue: null,
-        validate: {
-            isUrl: true // Opcional: si vas a guardar URLs de imágenes
-        }
+        defaultValue: null
     }
 },{
     sequelize,
