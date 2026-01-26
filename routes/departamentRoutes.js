@@ -1,5 +1,6 @@
 const router =require("express").Router();
 const AppError =require("../errors/AppError");
+const authenticate = require("../middlewares/authenticateJswt");
 
 const {createDepartment,deleteDepartment,getDepartment,updateDepartment,getDepartments}=require("../controller/departamentController");
 
@@ -34,6 +35,7 @@ const {createDepartment,deleteDepartment,getDepartment,updateDepartment,getDepar
 
 router.post(
     "/departments/create",
+    authenticate(['admin']), // Solo admins pueden crear departamentos
     async(req,res,next)=>{
         try{
             const{nombre,codigo,responsableId}=req.body;
@@ -88,6 +90,7 @@ router.post(
 
 router.put(
     "/departments/update/:id",
+    authenticate(['admin']), // Solo admins pueden actualizar departamentos
     async(req,res,next)=>{
         try{
             const{nombre,codigo,responsableId}=req.body;
@@ -135,6 +138,7 @@ router.put(
 
 router.delete(
     "/departments/delete/:id",
+    authenticate(['admin']), // Solo admins pueden eliminar departamentos
     async(req,res,next)=>{
         try{
             const{id}=req.params;
@@ -175,13 +179,14 @@ router.delete(
 
 router.get(
     "/departments",
+    authenticate(['admin', 'responsable']), // Usuarios autenticados
     async(req,res,next)=>{
         try{
-            const departments=await getDepartments();
+            const departments = await getDepartments();
             res.status(200).json(departments);
         }catch(error){
             next(error);
-        }    
+        }
     }
 );
 
@@ -212,17 +217,25 @@ router.get(
 
 router.get(
     "/departments/:id",
+    authenticate(['admin', 'responsable']), // Usuarios autenticados
     async(req,res,next)=>{
         try{
             const{id}=req.params;
             if(!id){
-                throw new AppError("El id es requerido ",400);
+                throw new AppError("El id es requerido",400);
             }
-            const departament=await getDepartment(id);
-            if(!departament){
+
+            // Los responsables solo pueden ver su departamento
+            if (req.userRole === 'responsable' && parseInt(id) !== req.departmentId) {
+                throw new AppError("Solo puedes ver tu departamento", 403);
+            }
+
+            const department=await getDepartment(id);
+            if(!department){
                 throw new AppError("Departamento no encontrado",404);
             }
-            res.status(200).json(departament);
+
+            res.status(200).json(department);
         }catch(error){
             next(error);
         }

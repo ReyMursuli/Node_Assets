@@ -20,6 +20,7 @@ const userRoutes = require('./routes/userRoutes');
 const routesUser = require("./routes/userRoutes.js");
 const routesAsset = require("./routes/assetRoutes.js");
 const routesDepartent = require("./routes/departamentRoutes.js");
+const authRoutes = require('./routes/authRoutes');
 
 // Configuración de Swagger
 const swaggerOptions = {
@@ -55,6 +56,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Rutas API
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use(routesUser);
 app.use(routesAsset);

@@ -1,6 +1,7 @@
 const router=require("express").Router();
 const AppError=require("../errors/AppError");
-
+const authenticate = require("../middlewares/authenticateJswt");
+const checkDepartmentAssetAccess = require("../middlewares/checkDepartmentAssetAccess");
 
 const{
     createAsset,
@@ -54,6 +55,8 @@ const{
 
 router.post(
     "/assets/create",
+    authenticate(['admin', 'responsable']), // Admins y responsables pueden crear
+    checkDepartmentAssetAccess, // Verificar acceso por departamento
     async(req,res,next)=>{
         try{
             const{nombre,codigo,rotulo,val_inicial,val_residual,dep_acomulada,departamentId}=req.body;
@@ -136,6 +139,8 @@ router.post(
 
 router.put(
     "/assets/update/:id",
+    authenticate(['admin', 'responsable']), // Admins y responsables pueden actualizar
+    checkDepartmentAssetAccess, // Verificar acceso por departamento
     async(req,res,next)=>{
         try{
             const {id}=req.params;
@@ -202,6 +207,8 @@ router.put(
 
 router.delete(
     "/assets/delete/:id",
+    authenticate(['admin', 'responsable']), // Admins y responsables pueden eliminar
+    checkDepartmentAssetAccess, // Verificar acceso por departamento
     async(req,res,next)=>{
         try{
             const{id}=req.params;
@@ -245,15 +252,34 @@ router.delete(
 
 router.get(
     "/assets",
+    authenticate(['admin', 'responsable']), // Usuarios autenticados
     async(req,res,next)=>{
         try{
-            const assets = await getAssets();
+            let assets;
+            
+            // Los admins ven todos los activos
+            if (req.userRole === 'admin') {
+                assets = await getAssets();
+            } else {
+                // Los responsables solo ven activos de su departamento
+                const Asset = require('../models/asset');
+                assets = await Asset.findAll({
+                    where: { departamentId: req.departmentId },
+                    include: [{
+                        model: require('../models/departament'),
+                        as: 'departament',
+                        attributes: ['id', 'nombre', 'codigo']
+                    }]
+                });
+            }
+            
             res.status(200).json(assets);
         }catch(error){
             next(error);
         }
     }
 );
+
 
 /**
  * @swagger
@@ -283,12 +309,28 @@ router.get(
 
 router.get(
     "/assets/:id",
+    authenticate(['admin', 'responsable']), // Usuarios autenticados
     async(req,res,next)=>{
         try{
             const {id}=req.params;
             if (!id) {
                 throw new AppError("El id es requerido", 400);
             }
+
+            // Los responsables solo pueden ver activos de su departamento
+            if (req.userRole === 'responsable') {
+                const Asset = require('../models/asset');
+                const asset = await Asset.findByPk(id);
+                
+                if (!asset) {
+                    throw new AppError("Activo no encontrado", 404);
+                }
+                
+                if (asset.departamentId !== req.departmentId) {
+                    throw new AppError("No tienes permisos para ver este activo", 403);
+                }
+            }
+
             const asset = await getAsset(id);
             if (!asset) {
                 throw new AppError("Activo no encontrado", 404);

@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const AppError = require("../errors/AppError");
-// const authenticate = require("../")
+const authenticate = require("../middlewares/authenticateJswt");
 const upload = require("../middlewares/multerConfig"); // Importar Multer
 
 const {
@@ -30,6 +30,8 @@ const {
  *                 type: string
  *               email:
  *                 type: string
+ *               password:
+ *                 type: string
  *               role:
  *                 type: string
  *               profileImage:
@@ -46,6 +48,7 @@ const {
 
 router.post(
     "/usuarios/create",
+    authenticate(['admin']), // Solo admins pueden crear usuarios
     upload.single('profileImage'), // Middleware Multer para subir imagen
     async (req, res, next) => {
         try {
@@ -112,6 +115,7 @@ router.post(
 
 router.put(
     "/usuarios/update/:id",
+    authenticate(['admin']), // Solo admins pueden actualizar usuarios
     upload.single('profileImage'), // Middleware Multer para subir imagen
     async (req, res, next) => {
         try {
@@ -184,6 +188,7 @@ router.put(
 
 router.put(
     "/usuarios/upload-profile-image/:id",
+    authenticate(['admin']), // Solo admins pueden actualizar imágenes
     upload.single('profileImage'),
     async (req, res, next) => {
         try {
@@ -244,12 +249,18 @@ router.put(
 
 router.get(
     "/usuarios/:id",
+    authenticate(['admin', 'responsable']), // Usuarios autenticados
     async (req, res, next) => {
         try {
             const { id } = req.params;
             
             if (!id) {
                 throw new AppError("El id es requerido", 400);
+            }
+
+            // Los responsables solo pueden ver su propio perfil
+            if (req.userRole === 'responsable' && parseInt(id) !== req.user.id) {
+                throw new AppError("Solo puedes ver tu propio perfil", 403);
             }
 
             const user = await getUserById(id);
@@ -295,6 +306,7 @@ router.get(
 
 router.delete(
     "/usuarios/delete/:id",
+    authenticate(['admin']), // Solo admins pueden eliminar usuarios
     async (req, res, next) => {
         try {
             const { id } = req.params;
@@ -337,6 +349,7 @@ router.delete(
 
 router.get(
     "/usuarios",
+    authenticate(['admin']), // Solo admins pueden ver todos los usuarios
     async (req, res, next) => {
         try {
             const usuarios = await getUser();
