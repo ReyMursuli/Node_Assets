@@ -1,17 +1,16 @@
-const router=require("express").Router();
-const AppError=require("../errors/AppError");
+const router = require("express").Router();
+const AppError = require("../errors/AppError");
 const authenticate = require("../middlewares/authenticateJswt");
 const checkDepartmentAssetAccess = require("../middlewares/checkDepartmentAssetAccess");
 
-const{
+const {
     createAsset,
     updateAsset,
     deleteAsset,
     getAsset,
     getAssets,
-
-}=require("../controller/assetController");
-
+    countAssets  // Corregido el typo: "conuntAssets" -> "countAssets"
+} = require("../controllers/assetController");
 
 /**
  * @swagger
@@ -52,40 +51,180 @@ const{
  *       500:
  *         description: Error de servidor
  */
-
 router.post(
-    "/assets/create",
-    authenticate(['admin', 'responsable']), // Admins y responsables pueden crear
-    checkDepartmentAssetAccess, // Verificar acceso por departamento
-    async(req,res,next)=>{
-        try{
-            const{nombre,codigo,rotulo,val_inicial,val_residual,dep_acomulada,departamentId}=req.body;
-        
-            if(!nombre || !codigo || !rotulo ||!val_inicial ||!val_residual || !dep_acomulada || !departamentId){
-            throw new AppError("Todos los campos son requeridos",400);
+    "/create",
+    authenticate(['admin', 'responsable']),
+    checkDepartmentAssetAccess,
+    async (req, res, next) => {
+        try {
+            const { nombre, codigo, rotulo, val_inicial, val_residual, dep_acomulada, departamentId } = req.body;
+
+            if (!nombre || !codigo || !rotulo || !val_inicial || !val_residual || !dep_acomulada || !departamentId) {
+                throw new AppError("Todos los campos son requeridos", 400);
             }
             if (val_inicial < 0 || val_residual < 0) {
                 throw new AppError("Los valores deben ser positivos", 400);
             }
 
-        const asset=await createAsset(
-            nombre, 
-            codigo, 
-            rotulo, 
-            val_inicial, 
-            val_residual, 
-            dep_acomulada, 
-            departamentId
-        );
-        res.status(201).json(asset);
+            const asset = await createAsset(
+                nombre,
+                codigo,
+                rotulo,
+                val_inicial,
+                val_residual,
+                dep_acomulada,
+                departamentId
+            );
+            res.status(201).json(asset);
 
-        }catch(error){
+        } catch (error) {
             next(error);
         }
-            
     }
-)
+);
 
+/**
+ * @swagger
+ * /assets/count:
+ *   get:
+ *     summary: Obtiene el número total de activos
+ *     description: Retorna el conteo total de activos registrados en el sistema
+ *     tags:
+ *       - Activos
+ *     responses:
+ *       200:
+ *         description: Conteo total de activos obtenido exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                   description: Número total de activos
+ *                   example: 1500
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get(
+    "/count",
+    authenticate(['admin', 'responsable']),
+    async (req, res, next) => {
+        try {
+            const total = await countAssets();
+            res.status(200).json({ total });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * @swagger
+ * /assets:
+ *   get:
+ *     summary: Obtiene una lista de todos los activos
+ *     tags:
+ *       - Activo
+ *     responses:
+ *       200:
+ *         description: Lista de activos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Error de servidor
+ */
+router.get(
+    "/",
+    authenticate(['admin', 'responsable']),
+    async (req, res, next) => {
+        try {
+            let assets;
+
+            if (req.userRole === 'admin') {
+                assets = await getAssets();
+            } else {
+                const Asset = require('../models/asset');
+                assets = await Asset.findAll({
+                    where: { departamentId: req.departmentId },
+                    include: [{
+                        model: require('../models/departament'),
+                        as: 'departament',
+                        attributes: ['id', 'nombre', 'codigo']
+                    }]
+                });
+            }
+
+            res.status(200).json(assets);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * @swagger
+ * /assets/{id}:
+ *   get:
+ *     summary: Obtiene un activo por ID
+ *     tags:
+ *       - Activo
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del activo
+ *     responses:
+ *       200:
+ *         description: Activo encontrado
+ *       400:
+ *         description: El id es requerido
+ *       404:
+ *         description: Activo no encontrado
+ *       500:
+ *         description: Error de servidor
+ */
+router.get(
+    "/:id",
+    authenticate(['admin', 'responsable']),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            if (!id) {
+                throw new AppError("El id es requerido", 400);
+            }
+
+            if (req.userRole === 'responsable') {
+                const Asset = require('../models/asset');
+                const asset = await Asset.findByPk(id);
+
+                if (!asset) {
+                    throw new AppError("Activo no encontrado", 404);
+                }
+
+                if (asset.departamentId !== req.departmentId) {
+                    throw new AppError("No tienes permisos para ver este activo", 403);
+                }
+            }
+
+            const asset = await getAsset(id);
+            if (!asset) {
+                throw new AppError("Activo no encontrado", 404);
+            }
+
+            res.status(200).json(asset);
+
+        } catch (error) {
+            next(error);
+        }
+    }
+);
 
 /**
  * @swagger
@@ -135,17 +274,15 @@ router.post(
  *       500:
  *         description: Error de servidor
  */
-
-
 router.put(
-    "/assets/update/:id",
-    authenticate(['admin', 'responsable']), // Admins y responsables pueden actualizar
-    checkDepartmentAssetAccess, // Verificar acceso por departamento
-    async(req,res,next)=>{
-        try{
-            const {id}=req.params;
-            const{nombre,codigo,rotulo,val_inicial,val_residual,dep_acomulada,departamentId}=req.body;
-            if(!id){
+    "/update/:id",
+    authenticate(['admin', 'responsable']),
+    checkDepartmentAssetAccess,
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const { nombre, codigo, rotulo, val_inicial, val_residual, dep_acomulada, departamentId } = req.body;
+            if (!id) {
                 throw new AppError("El id es requerido", 400);
             }
             if (val_inicial < 0) {
@@ -156,26 +293,25 @@ router.put(
             }
 
             const asset = await updateAsset(
-                id, 
-                nombre, 
-                codigo, 
-                rotulo, 
-                val_inicial, 
-                val_residual, 
-                dep_acomulada, 
+                id,
+                nombre,
+                codigo,
+                rotulo,
+                val_inicial,
+                val_residual,
+                dep_acomulada,
                 departamentId
             );
-            
+
             if (asset == 0) {
                 throw new AppError("Activo no encontrado", 404);
             }
 
             res.status(200).json({ mensaje: "Activo actualizado" });
 
-        }catch(error){
-        next(error);
-    }
-
+        } catch (error) {
+            next(error);
+        }
     }
 );
 
@@ -203,15 +339,13 @@ router.put(
  *       500:
  *         description: Error de servidor
  */
-
-
 router.delete(
-    "/assets/delete/:id",
-    authenticate(['admin', 'responsable']), // Admins y responsables pueden eliminar
-    checkDepartmentAssetAccess, // Verificar acceso por departamento
-    async(req,res,next)=>{
-        try{
-            const{id}=req.params;
+    "/delete/:id",
+    authenticate(['admin', 'responsable']),
+    checkDepartmentAssetAccess,
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
             if (!id) {
                 throw new AppError("El id es requerido", 400);
             }
@@ -222,124 +356,8 @@ router.delete(
 
             res.status(200).json({ mensaje: "Activo eliminado" })
 
-        }catch(error){
+        } catch (error) {
             next(error);
-        }
-    }
-);
-
-
-/**
- * @swagger
- * /assets:
- *   get:
- *     summary: Obtiene una lista de todos los activos
- *     tags:
- *       - Activo
- *     responses:
- *       200:
- *         description: Lista de activos
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *       500:
- *         description: Error de servidor
- */
-
-
-router.get(
-    "/assets",
-    authenticate(['admin', 'responsable']), // Usuarios autenticados
-    async(req,res,next)=>{
-        try{
-            let assets;
-            
-            // Los admins ven todos los activos
-            if (req.userRole === 'admin') {
-                assets = await getAssets();
-            } else {
-                // Los responsables solo ven activos de su departamento
-                const Asset = require('../models/asset');
-                assets = await Asset.findAll({
-                    where: { departamentId: req.departmentId },
-                    include: [{
-                        model: require('../models/departament'),
-                        as: 'departament',
-                        attributes: ['id', 'nombre', 'codigo']
-                    }]
-                });
-            }
-            
-            res.status(200).json(assets);
-        }catch(error){
-            next(error);
-        }
-    }
-);
-
-
-/**
- * @swagger
- * /assets/{id}:
- *   get:
- *     summary: Obtiene un activo por ID
- *     tags:
- *       - Activo
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID del activo
- *     responses:
- *       200:
- *         description: Activo encontrado
- *       400:
- *         description: El id es requerido
- *       404:
- *         description: Activo no encontrado
- *       500:
- *         description: Error de servidor
- */
-
-
-router.get(
-    "/assets/:id",
-    authenticate(['admin', 'responsable']), // Usuarios autenticados
-    async(req,res,next)=>{
-        try{
-            const {id}=req.params;
-            if (!id) {
-                throw new AppError("El id es requerido", 400);
-            }
-
-            // Los responsables solo pueden ver activos de su departamento
-            if (req.userRole === 'responsable') {
-                const Asset = require('../models/asset');
-                const asset = await Asset.findByPk(id);
-                
-                if (!asset) {
-                    throw new AppError("Activo no encontrado", 404);
-                }
-                
-                if (asset.departamentId !== req.departmentId) {
-                    throw new AppError("No tienes permisos para ver este activo", 403);
-                }
-            }
-
-            const asset = await getAsset(id);
-            if (!asset) {
-                throw new AppError("Activo no encontrado", 404);
-            }
-
-            res.status(200).json(asset);
-
-        }catch(error){
-            next(error)
         }
     }
 );

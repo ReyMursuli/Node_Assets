@@ -8,7 +8,7 @@ const createUser = async (username, email, password, role, profileImage = null) 
         role,
         profileImage
     });
-    return user;
+    return user.toJSON();
 };
 
 const updateUser = async (id, username, email, role, profileImage) => {
@@ -48,6 +48,10 @@ const getUserById = async (id) => {
     });
     return user;
 };
+const countUsers = async () => {
+    const count = await User.count();
+    return count;
+}
 
 module.exports = {
     createUser,
@@ -56,5 +60,6 @@ module.exports = {
     updateUserProfileImage,
     deleteUser,
     getUser,
-    getUserById
+    getUserById,
+    countUsers
 };

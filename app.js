@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-// Imports de librerías
+// Imports de bibliotecas
 const express = require('express');
 const cors = require('cors');
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -17,7 +17,6 @@ const Asset = require("./models/asset.js");
 
 // Imports de rutas
 const userRoutes = require('./routes/userRoutes');
-const routesUser = require("./routes/userRoutes.js");
 const routesAsset = require("./routes/assetRoutes.js");
 const routesDepartent = require("./routes/departamentRoutes.js");
 const authRoutes = require('./routes/authRoutes');
@@ -32,7 +31,7 @@ const swaggerOptions = {
             description: 'API Assets',    
         },
     },
-    apis: ['./routes/*.js', ' ./models/*.js'],
+    apis: ['./routes/*.js', './models/*.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -40,14 +39,21 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 // Inicialización de Express
 const app = express();
 
-// Configuración de CORS
 const allowedOrigins = ["http://localhost:3000", "http://localhost:3001"];
 app.use(
     cors({
-        origin: allowedOrigins, 
-        methods: ["GET,HEAD,PUT,PATCH,POST,DELETE"],
+        origin: function (origin, callback) {
+            
+            if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
         credentials: true,
-    })    
+        allowedHeaders: ["Content-Type", "Authorization"] 
+    })
 );
 
 // Middlewares básicos
@@ -58,9 +64,8 @@ app.use(express.static('public'));
 // Rutas API
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use(routesUser);
-app.use(routesAsset);
-app.use(routesDepartent);
+app.use('/api/assets', routesAsset);
+app.use('/api/departments', routesDepartent);
 
 // Documentación Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -85,6 +90,7 @@ sequelize
     });
 
 // Inicio del servidor
-app.listen(3000, () => {
-    console.log("Servidor iniciado en el puerto 3000")
+const PORT = process.env.PORT;
+app.listen(PORT, () => {
+    console.log(`Servidor iniciado en el puerto ${PORT}`);
 });

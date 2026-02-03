@@ -2,7 +2,7 @@ const router =require("express").Router();
 const AppError =require("../errors/AppError");
 const authenticate = require("../middlewares/authenticateJswt");
 
-const {createDepartment,deleteDepartment,getDepartment,updateDepartment,getDepartments}=require("../controller/departamentController");
+const {createDepartment,deleteDepartment,getDepartment,updateDepartment,getDepartments,countDepartments}=require("../controllers/departamentController");
 
 /**
  * @swagger
@@ -34,7 +34,7 @@ const {createDepartment,deleteDepartment,getDepartment,updateDepartment,getDepar
  */
 
 router.post(
-    "/departments/create",
+    "/create",
     authenticate(['admin']), // Solo admins pueden crear departamentos
     async(req,res,next)=>{
         try{
@@ -89,7 +89,7 @@ router.post(
  */
 
 router.put(
-    "/departments/update/:id",
+    "/:id",
     authenticate(['admin']), // Solo admins pueden actualizar departamentos
     async(req,res,next)=>{
         try{
@@ -137,7 +137,7 @@ router.put(
 
 
 router.delete(
-    "/departments/delete/:id",
+    "/:id",
     authenticate(['admin']), // Solo admins pueden eliminar departamentos
     async(req,res,next)=>{
         try{
@@ -178,13 +178,56 @@ router.delete(
  */
 
 router.get(
-    "/departments",
+    "/",
     authenticate(['admin', 'responsable']), // Usuarios autenticados
     async(req,res,next)=>{
         try{
             const departments = await getDepartments();
             res.status(200).json(departments);
         }catch(error){
+            next(error);
+        }
+    }
+);
+/**
+ * @swagger
+ * /departments/count:
+ *   get:
+ *     summary: Obtiene el número total de departamentos
+ *     description: Retorna el conteo total de departamentos registrados en el sistema
+ *     tags:
+ *       - Departamento
+ *     responses:
+ *       200:
+ *         description: Conteo total de departamentos obtenido exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                   description: Número total de departamentos
+ *                   example: 25
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Error al conectar con la base de datos"
+ */
+router.get(
+    "/count",
+    authenticate(['admin']), // Generalmente las estadísticas son para admins
+    async (req, res, next) => {
+        try {
+            const total = await countDepartments();
+            res.status(200).json({ total });
+        } catch (error) {
             next(error);
         }
     }
@@ -216,7 +259,7 @@ router.get(
  */
 
 router.get(
-    "/departments/:id",
+    "/:id",
     authenticate(['admin', 'responsable']), // Usuarios autenticados
     async(req,res,next)=>{
         try{
@@ -241,5 +284,6 @@ router.get(
         }
     }
 );
+
 
 module.exports = router;

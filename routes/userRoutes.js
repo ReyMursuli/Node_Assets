@@ -1,20 +1,87 @@
 const router = require("express").Router();
 const AppError = require("../errors/AppError");
 const authenticate = require("../middlewares/authenticateJswt");
-const upload = require("../middlewares/multerConfig"); // Importar Multer
+const upload = require("../middlewares/multerConfig");
 
 const {
     createUser,
     deleteUser,
     getUser,
     updateUser,
-    updateUserProfileImage, // Nuevo controlador para imagen
-    getUserById // Nuevo controlador para obtener usuario específico
-} = require("../controller/userController");
+    updateUserProfileImage,
+    getUserById,
+    countUsers  // Asegúrate de exportar esta función desde tu controlador
+} = require("../controllers/userController");
 
 /**
  * @swagger
- * /usuarios/create:
+ * /api/users/count:
+ *   get:
+ *     summary: Obtiene el número total de usuarios registrados
+ *     tags:
+ *       - Usuario
+ *     responses:
+ *       200:
+ *         description: Conteo total de usuarios
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                   example: 150
+ *       500:
+ *         description: Error de servidor
+ */
+router.get(
+    "/count",
+    authenticate(['admin']),
+    async (req, res, next) => {
+        try {
+            const total = await countUsers();
+            res.status(200).json({ total });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Obtiene una lista de usuarios
+ *     tags:
+ *       - Usuario
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Error de servidor
+ */
+router.get(
+    "/",
+    authenticate(['admin']),
+    async (req, res, next) => {
+        try {
+            const usuarios = await getUser();
+            res.status(200).json(usuarios);
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * @swagger
+ * /api/users/create:
  *   post:
  *     summary: Crea un nuevo usuario
  *     tags:
@@ -45,27 +112,34 @@ const {
  *       500:
  *         description: Error de servidor
  */
-
 router.post(
-    "/usuarios/create",
-    authenticate(['admin']), // Solo admins pueden crear usuarios
-    upload.single('profileImage'), // Middleware Multer para subir imagen
+    "/create",
+    authenticate(['admin']),
+    upload.single('profileImage'),
     async (req, res, next) => {
         try {
-            const { username, email, role } = req.body;
+            const { username, email, password, role } = req.body;
             let profileImage = null;
 
-            if (!username || !email) {
-                throw new AppError("Todos los campos son requeridos", 400);
+            if (!username || !email || !password) {
+                throw new AppError("Username, email y contraseña son requeridos", 400);
             }
 
-            // Si se subió una imagen, guardar la ruta
+            if (password.length < 6) {
+                throw new AppError("La contraseña debe tener al menos 6 caracteres", 400);
+            }
+
             if (req.file) {
                 profileImage = `images/profiles/${req.file.filename}`;
             }
 
-            const user = await createUser(username, email, role, profileImage);
-            res.status(201).json(user);
+            const user = await createUser(username, email, password, role, profileImage);
+
+            res.status(201).json({
+                success: true,
+                message: 'Usuario creado exitosamente',
+                data: user
+            });
         } catch (error) {
             next(error);
         }
@@ -74,7 +148,60 @@ router.post(
 
 /**
  * @swagger
- * /usuarios/update/{id}:
+ * /api/users/{id}:
+ *   get:
+ *     summary: Obtiene un usuario específico por ID
+ *     tags:
+ *       - Usuario
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Usuario encontrado
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error de servidor
+ */
+router.get(
+    "/:id",
+    authenticate(['admin', 'responsable']),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+
+            if (!id) {
+                throw new AppError("El id es requerido", 400);
+            }
+
+            if (req.userRole === 'responsable' && parseInt(id) !== req.user.id) {
+                throw new AppError("Solo puedes ver tu propio perfil", 403);
+            }
+
+            const user = await getUserById(id);
+
+            if (!user) {
+                throw new AppError("Usuario no encontrado", 404);
+            }
+
+            res.status(200).json({
+                success: true,
+                user: user
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * @swagger
+ * /api/users/update/{id}:
  *   put:
  *     summary: Actualiza un usuario existente
  *     tags:
@@ -112,11 +239,10 @@ router.post(
  *       500:
  *         description: Error de servidor
  */
-
 router.put(
-    "/usuarios/update/:id",
-    authenticate(['admin']), // Solo admins pueden actualizar usuarios
-    upload.single('profileImage'), // Middleware Multer para subir imagen
+    "/update/:id",
+    authenticate(['admin']),
+    upload.single('profileImage'),
     async (req, res, next) => {
         try {
             const { username, role, email } = req.body;
@@ -131,7 +257,6 @@ router.put(
                 throw new AppError("Todos los campos son requeridos", 400);
             }
 
-            // Si se subió una imagen, guardar la ruta
             if (req.file) {
                 profileImage = `images/profiles/${req.file.filename}`;
             }
@@ -141,9 +266,9 @@ router.put(
                 throw new AppError("Usuario no encontrado", 404);
             }
 
-            res.status(200).json({ 
+            res.status(200).json({
                 mensaje: "Usuario actualizado",
-                profileImage: profileImage // Devolver la ruta de la imagen si se actualizó
+                profileImage: profileImage
             });
         } catch (error) {
             next(error);
@@ -153,7 +278,7 @@ router.put(
 
 /**
  * @swagger
- * /usuarios/upload-profile-image/{id}:
+ * /api/users/upload-profile-image/{id}:
  *   put:
  *     summary: Actualiza solo la imagen de perfil de un usuario
  *     tags:
@@ -185,10 +310,9 @@ router.put(
  *       500:
  *         description: Error de servidor
  */
-
 router.put(
-    "/usuarios/upload-profile-image/:id",
-    authenticate(['admin']), // Solo admins pueden actualizar imágenes
+    "/upload-profile-image/:id",
+    authenticate(['admin']),
     upload.single('profileImage'),
     async (req, res, next) => {
         try {
@@ -226,62 +350,7 @@ router.put(
 
 /**
  * @swagger
- * /usuarios/{id}:
- *   get:
- *     summary: Obtiene un usuario específico por ID
- *     tags:
- *       - Usuario
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
- *     responses:
- *       200:
- *         description: Usuario encontrado
- *       404:
- *         description: Usuario no encontrado
- *       500:
- *         description: Error de servidor
- */
-
-router.get(
-    "/usuarios/:id",
-    authenticate(['admin', 'responsable']), // Usuarios autenticados
-    async (req, res, next) => {
-        try {
-            const { id } = req.params;
-            
-            if (!id) {
-                throw new AppError("El id es requerido", 400);
-            }
-
-            // Los responsables solo pueden ver su propio perfil
-            if (req.userRole === 'responsable' && parseInt(id) !== req.user.id) {
-                throw new AppError("Solo puedes ver tu propio perfil", 403);
-            }
-
-            const user = await getUserById(id);
-            
-            if (!user) {
-                throw new AppError("Usuario no encontrado", 404);
-            }
-
-            res.status(200).json({
-                success: true,
-                user: user
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-/**
- * @swagger
- * /usuarios/delete/{id}:
+ * /api/users/delete/{id}:
  *   delete:
  *     summary: Elimina un usuario
  *     tags:
@@ -303,10 +372,9 @@ router.get(
  *       500:
  *         description: Error de servidor
  */
-
 router.delete(
-    "/usuarios/delete/:id",
-    authenticate(['admin']), // Solo admins pueden eliminar usuarios
+    "/delete/:id",
+    authenticate(['admin']),
     async (req, res, next) => {
         try {
             const { id } = req.params;
@@ -321,39 +389,6 @@ router.delete(
             }
             res.status(200).json({ mensaje: "Usuario eliminado" })
 
-        } catch (error) {
-            next(error);
-        }
-    }
-);
-
-/**
- * @swagger
- * /usuarios:
- *   get:
- *     summary: Obtiene una lista de usuarios
- *     tags:
- *       - Usuario
- *     responses:
- *       200:
- *         description: Lista de usuarios
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *       500:
- *         description: Error de servidor
- */
-
-router.get(
-    "/usuarios",
-    authenticate(['admin']), // Solo admins pueden ver todos los usuarios
-    async (req, res, next) => {
-        try {
-            const usuarios = await getUser();
-            res.status(200).json(usuarios);
         } catch (error) {
             next(error);
         }

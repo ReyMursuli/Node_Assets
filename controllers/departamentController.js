@@ -5,8 +5,8 @@ const createDepartment= async(nombre,codigo,responsableId=null)=>{
     return departament;
 };
 
-const updateDepartment= async(id,nombre,codigo,responsaliId=null)=>{
-    const updateData={nombre,codigo,responsaliId};
+const updateDepartment= async(id,nombre,codigo,responsableId=null)=>{
+    const updateData={nombre,codigo,responsableId};
     const department = await Departament.update(updateData, { where: { id } });
     return department;
 };
@@ -37,6 +37,11 @@ const getDepartments=async()=>{
     return departments;
 };
 
+const countDepartments=async()=>{
+    const count = await Departament.count();
+    return count;
+}
+
 module.exports={
-    createDepartment,updateDepartment,deleteDepartment,getDepartment,getDepartments
+    createDepartment,updateDepartment,deleteDepartment,getDepartment,getDepartments,countDepartments
 };

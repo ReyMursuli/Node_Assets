@@ -14,7 +14,7 @@ const host=process.env.HOST;
 const sequelize= new Sequelize(databaseName,user,password,{
     host: host,
     dialect: dialect,
-    loggin: false,
+    logging: false,
 });
 
 sequelize.authenticate().then(()=>{

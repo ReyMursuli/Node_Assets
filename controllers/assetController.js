@@ -9,7 +9,7 @@ const createAsset = async (nombre, codigo, rotulo, val_inicial, val_residual, de
         val_inicial,      
         val_residual,     
         dep_acomulada,     
-        departamentId,    
+        departamentId, 
     });
     return asset;
 };
@@ -47,12 +47,16 @@ const getAsset = async (id) => {
     });
     return asset;
 };
-
+const countAssets = async () => {
+    const count = await Asset.count();
+    return count;
+}
 
 module.exports={
     createAsset,
     updateAsset,
     deleteAsset,
     getAsset,
-    getAssets
+    getAssets,
+    countAssets
 };

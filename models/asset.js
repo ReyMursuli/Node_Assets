@@ -65,7 +65,7 @@ Departament.hasMany(Asset,{
     foreignKey:"departamentId",
     onDelete:'CASCADE',
     onUpdate:'CASCADE',
-}),
+});
 
 Asset.belongsTo(Departament,{
     foreignKey:"departamentId",
