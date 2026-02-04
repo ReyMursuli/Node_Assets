@@ -1,5 +1,5 @@
 const User = require('../models/user');
-
+const Departament = require('../models/departament');
 const createUser = async (username, email, password, role, profileImage = null) => {
     const user = await User.create({
         username,
@@ -11,13 +11,29 @@ const createUser = async (username, email, password, role, profileImage = null) 
     return user.toJSON();
 };
 
-const updateUser = async (id, username, email, role, profileImage) => {
-    const updateData = { username, role, email };
+const updateUser = async (id, username, email, role, profileImage, password) => {
+    const user = await User.findByPk(id);
+    if (!user) return null;
+
+    const updateData = { 
+        username: username || user.username, 
+        role: role || user.role, 
+        email: email || user.email 
+    };
+
     if (typeof profileImage === 'string') {
         updateData.profileImage = profileImage;
     }
-    const usuario = await User.update(updateData, { where: { id } });
-    return usuario;
+
+    if (password && password.trim() !== "") {
+        user.password = password;
+    }
+
+    
+    await user.set(updateData);
+    await user.save(); 
+
+    return user;
 };
 
 const updateUserPassword = async (id, newPassword) => {
@@ -53,6 +69,17 @@ const countUsers = async () => {
     return count;
 }
 
+const getUserProfile = async (id) => {
+    const user = await User.findByPk(id, {
+        attributes: { exclude: ['password', 'twoFactorSecret'] }, 
+        include: [{
+            model: Departament,
+            as: 'departamentoResponsable' 
+        }]
+    });
+    return user;
+};
+
 module.exports = {
     createUser,
     updateUser,
@@ -61,5 +88,6 @@ module.exports = {
     deleteUser,
     getUser,
     getUserById,
-    countUsers
+    countUsers,
+    getUserProfile
 };

@@ -10,7 +10,8 @@ const {
     updateUser,
     updateUserProfileImage,
     getUserById,
-    countUsers  // Asegúrate de exportar esta función desde tu controlador
+    countUsers,
+    getUserProfile
 } = require("../controllers/userController");
 
 /**
@@ -41,6 +42,52 @@ router.get(
         try {
             const total = await countUsers();
             res.status(200).json({ total });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+router.get(
+    "/profile",
+    authenticate(['admin', 'responsable']), // Middleware que ya tienes
+    async (req, res, next) => {
+        try {
+            // El ID viene del token decodificado por el middleware 'authenticate'
+            const userId = req.user.id; 
+            
+            const user = await getUserProfile(userId);
+
+            if (!user) {
+                throw new AppError("Usuario no encontrado", 404);
+            }
+
+            res.status(200).json({
+                success: true,
+                user: user
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+router.put(
+    "/profile/update",
+    authenticate(['admin', 'responsable']),
+    async (req, res, next) => {
+        try {
+            const { username, email, password } = req.body;
+            // El ID viene del token JWT decodificado
+            const userId = req.user.id; 
+
+            const updatedUser = await updateUser(userId, username, email, null, null, password);
+
+            res.status(200).json({
+                success: true,
+                message: "Perfil actualizado correctamente",
+                user: updatedUser
+            });
         } catch (error) {
             next(error);
         }
