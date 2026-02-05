@@ -5,15 +5,24 @@ const {
     loginUser, 
     getUserSession, 
     refreshTokens, 
-    setup2FA 
+    setup2FA,
+    logoutUser 
 } = require("../controllers/authController");
 
 /**
  * @swagger
- * /api/auth/login:
+ * tags:
+ *   name: Autenticación
+ *   description: Endpoints para manejo de autenticación, sesiones y 2FA
+ */
+
+/**
+ * @swagger
+ * /auth/login:
  *   post:
- *     summary: Iniciar sesión
- *     tags: [Authentication]
+ *     summary: Iniciar sesión de usuario
+ *     tags: [Autenticación]
+ *     description: Autentica a un usuario con email y contraseña. Puede requerir código 2FA.
  *     requestBody:
  *       required: true
  *       content:
@@ -31,9 +40,10 @@ const {
  *               password:
  *                 type: string
  *                 format: password
- *                 example: "contraseña123"
+ *                 example: "Password123!"
  *               twoFactorCode:
  *                 type: string
+ *                 description: Código de autenticación de dos factores (requerido si 2FA está activado)
  *                 example: "123456"
  *     responses:
  *       200:
@@ -41,20 +51,38 @@ const {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 requiresTwoFactor:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
+ *               oneOf:
+ *                 - type: object
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         accessToken:
+ *                           type: string
+ *                         refreshToken:
+ *                           type: string
+ *                         user:
+ *                           type: object
+ *                 - type: object
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: false
+ *                     requiresTwoFactor:
+ *                       type: boolean
+ *                       example: true
+ *                     message:
+ *                       type: string
+ *                       example: Se requiere código 2FA
  *       400:
- *         description: Error en la solicitud
+ *         description: Datos inválidos o faltantes
  *       401:
- *         description: Credenciales inválidas
+ *         description: Credenciales incorrectas
+ *       500:
+ *         description: Error del servidor
  */
 router.post("/login", async (req, res, next) => {
     try {
@@ -82,37 +110,51 @@ router.post("/login", async (req, res, next) => {
 
 /**
  * @swagger
- * /api/auth/session:
+ * /auth/session:
  *   get:
- *     summary: Obtener sesión actual
- *     description: Obtiene la información del usuario autenticado
- *     tags: [Authentication]
+ *     summary: Obtener información de sesión del usuario actual
+ *     tags: [Autenticación]
+ *     description: Retorna los datos del usuario autenticado. Requiere token JWT válido.
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Sesión obtenida correctamente
+ *         description: Datos de sesión obtenidos exitosamente
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       type: object
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 username:
+ *                   type: string
+ *                   example: "juan_perez"
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                   example: "juan@ejemplo.com"
+ *                 role:
+ *                   type: string
+ *                   example: "admin"
+ *                 departamento:
+ *                   type: string
+ *                   example: "Ventas"
  *       401:
  *         description: No autorizado - Token inválido o expirado
+ *       500:
+ *         description: Error del servidor
  */
 router.get("/session", authenticate(), async (req, res, next) => {
     try {
         const user = await getUserSession(req.user.id);
         res.status(200).json({
-            success: true,
-            data: { user }
+            id: user.id,
+            username: user.username, 
+            email: user.email,
+            role: user.role,
+            departamento: user.departamentoResponsable
         });
     } catch (error) {
         next(error);
@@ -121,10 +163,11 @@ router.get("/session", authenticate(), async (req, res, next) => {
 
 /**
  * @swagger
- * /api/auth/refresh:
+ * /auth/refresh:
  *   post:
  *     summary: Refrescar tokens de acceso
- *     tags: [Authentication]
+ *     tags: [Autenticación]
+ *     description: Genera nuevos tokens de acceso usando un refresh token válido
  *     requestBody:
  *       required: true
  *       content:
@@ -136,11 +179,11 @@ router.get("/session", authenticate(), async (req, res, next) => {
  *             properties:
  *               refreshToken:
  *                 type: string
- *                 description: Token de refresco
+ *                 description: Refresh token válido
  *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *     responses:
  *       200:
- *         description: Token refrescado correctamente
+ *         description: Tokens refrescados exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -148,12 +191,20 @@ router.get("/session", authenticate(), async (req, res, next) => {
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 data:
  *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
  *       400:
- *         description: Token requerido
+ *         description: Refresh token no proporcionado
  *       401:
- *         description: Token expirado o inválido
+ *         description: Refresh token expirado o inválido
+ *       500:
+ *         description: Error del servidor
  */
 router.post("/refresh", async (req, res, next) => {
     try {
@@ -173,16 +224,16 @@ router.post("/refresh", async (req, res, next) => {
 
 /**
  * @swagger
- * /api/auth/2fa/setup:
+ * /auth/logout:
  *   post:
- *     summary: Configurar autenticación de dos factores (2FA)
- *     description: Genera un código QR y secreto para configurar 2FA
- *     tags: [Authentication]
+ *     summary: Cerrar sesión del usuario
+ *     tags: [Autenticación]
+ *     description: Invalida la sesión del usuario actual. Requiere token JWT válido.
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Configuración generada correctamente
+ *         description: Logout exitoso
  *         content:
  *           application/json:
  *             schema:
@@ -190,17 +241,60 @@ router.post("/refresh", async (req, res, next) => {
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Logout exitoso"
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error del servidor
+ */
+router.post("/logout", authenticate(), async (req, res, next) => {
+    try {
+        await logoutUser(req.user.id);
+        res.status(200).json({ success: true, message: "Logout exitoso" });
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * @swagger
+ * /auth/2fa/setup:
+ *   post:
+ *     summary: Configurar autenticación de dos factores
+ *     tags: [Autenticación]
+ *     description: Genera secret y QR code para configurar 2FA. Requiere token JWT válido.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Configuración 2FA generada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   type: object
  *                   properties:
- *                     qrCode:
- *                       type: string
- *                       description: Código QR en formato base64
  *                     secret:
  *                       type: string
- *                       description: Secreto para configurar en la app de autenticación
+ *                       description: Secret para 2FA
+ *                     qrCodeUrl:
+ *                       type: string
+ *                       description: URL del código QR para escanear
+ *                     manualEntryKey:
+ *                       type: string
+ *                       description: Clave para entrada manual en app de autenticación
  *       401:
  *         description: No autorizado
+ *       500:
+ *         description: Error del servidor
  */
 router.post("/2fa/setup", authenticate(), async (req, res, next) => {
     try {

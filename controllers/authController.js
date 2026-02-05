@@ -10,7 +10,7 @@ const AppError = require("../errors/AppError");
  */
 const generateTokens = (user) => {
     const accessToken = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
+        { id: user.id, email: user.email, role: user.role ,username: user.username},
         process.env.JWT_SECRET,
         { expiresIn: '1h' } 
     );
@@ -155,9 +155,16 @@ const setup2FA = async (userId) => {
     return { secret: secret.base32, qrCode: qrCodeUrl };
 };
 
+const logoutUser = async (userId) => {
+    // Aquí puedes añadir lógica de logs si quieres
+    console.log(`[Auth] Sesión terminada para el usuario: ${userId}`);
+    return { success: true };
+};
+
 module.exports = {
     loginUser,
     getUserSession,
     refreshTokens,
-    setup2FA
+    setup2FA,
+    logoutUser
 };
