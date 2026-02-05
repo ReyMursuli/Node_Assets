@@ -52,11 +52,12 @@ const loginUser = async (email, password, twoFactorCode) => {
         throw new AppError("Credenciales inválidas", 401);
     }
 
-    // Verificación 2FA
+    // --- BLOQUE 2FA MODIFICADO PARA FUNCIONAR CON TU FRONTEND ---
     if (user.twoFactorEnabled) {
         if (!twoFactorCode) {
             console.log(`[Auth] 2FA requerido para: ${email}`);
-            return { requiresTwoFactor: true };
+            // Cambiamos el return por un throw para que Nuxt Auth lo capture como error
+            throw new AppError("2FA_REQUIRED", 401); 
         }
         
         const verified = speakeasy.totp.verify({
@@ -72,7 +73,7 @@ const loginUser = async (email, password, twoFactorCode) => {
         }
     }
 
-    // Generación de tokens
+    // Generación de tokens (Mantenemos todo tu código original abajo)
     const tokens = generateTokens(user);
     
     // Actualizamos timestamp de actividad
@@ -84,7 +85,7 @@ const loginUser = async (email, password, twoFactorCode) => {
     return {
         user: user.toJSON(),
         ...tokens,
-        expiresIn: 3600 // 1 hora en segundos
+        expiresIn: 3600 
     };
 };
 
@@ -160,11 +161,35 @@ const logoutUser = async (userId) => {
     console.log(`[Auth] Sesión terminada para el usuario: ${userId}`);
     return { success: true };
 };
+const verifyAndEnable2FA = async (userId, token) => {
+    const user = await User.findByPk(userId);
+    if (!user) throw new AppError("Usuario no encontrado", 404);
+
+    // Validamos el código usando el secreto que ya guardamos en setup2FA
+    const verified = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: 'base32',
+        token: token,
+        window: 1 
+    });
+
+    if (!verified) {
+        throw new AppError("Código de verificación inválido", 400);
+    }
+
+    // AHORA SÍ: Activamos el 2FA definitivamente
+    user.twoFactorEnabled = true;
+    await user.save();
+
+    console.log(`[Auth] 2FA activado permanentemente para: ${user.email}`);
+    return { success: true, message: "2FA activado correctamente" };
+};
 
 module.exports = {
     loginUser,
     getUserSession,
     refreshTokens,
     setup2FA,
-    logoutUser
+    logoutUser,
+    verifyAndEnable2FA
 };

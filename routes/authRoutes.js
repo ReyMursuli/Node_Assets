@@ -6,7 +6,8 @@ const {
     getUserSession, 
     refreshTokens, 
     setup2FA,
-    logoutUser 
+    logoutUser ,
+    verifyAndEnable2FA
 } = require("../controllers/authController");
 
 /**
@@ -156,6 +157,18 @@ router.get("/session", authenticate(), async (req, res, next) => {
             role: user.role,
             departamento: user.departamentoResponsable
         });
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post("/2fa/verify", authenticate(), async (req, res, next) => {
+    try {
+        const { token } = req.body;
+        if (!token) throw new AppError("Código requerido", 400);
+
+        const result = await verifyAndEnable2FA(req.user.id, token);
+        res.status(200).json(result);
     } catch (error) {
         next(error);
     }
