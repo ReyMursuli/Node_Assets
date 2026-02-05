@@ -222,7 +222,7 @@ router.get(
  */
 router.get(
     "/count",
-    authenticate(['admin']), // Generalmente las estadísticas son para admins
+    authenticate(['admin', 'responsable']),
     async (req, res, next) => {
         try {
             const total = await countDepartments();
